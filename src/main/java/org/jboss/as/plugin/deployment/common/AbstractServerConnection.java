@@ -25,11 +25,19 @@ package org.jboss.as.plugin.deployment.common;
 import java.io.Closeable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.List;
+
 import javax.security.auth.callback.CallbackHandler;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.jboss.as.plugin.deployment.ConnectionInfo;
 import org.jboss.as.plugin.deployment.domain.Domain;
+
+import com.google.common.net.HostAndPort;
+import com.spotify.dns.DnsSrvResolver;
+import com.spotify.dns.DnsSrvResolvers;
+//import com.spotify.dns.LookupResult;
+//import com.spotify.dns.examples.BasicUsage.StdoutReporter;
 
 /**
  * The default implementation for connecting to a running AS7 instance
@@ -87,6 +95,12 @@ public abstract class AbstractServerConnection extends AbstractMojo implements C
     private Domain domain;
 
     /**
+     * @parameter expression="${docker}"
+     */
+    private String docker;
+
+
+	/**
      * The hostname to deploy the archive to. The default is localhost.
      *
      * @return the hostname of the server.
@@ -95,6 +109,15 @@ public abstract class AbstractServerConnection extends AbstractMojo implements C
         return hostname;
     }
 
+    public String getDocker() {
+		return docker;
+	}
+
+	public void setDocker(String docker) {
+		this.docker = docker;
+	}
+    
+    
     /**
      * The port number of the server to deploy to. The default is 9999.
      *
@@ -102,6 +125,20 @@ public abstract class AbstractServerConnection extends AbstractMojo implements C
      */
     @Override
     public final int getPort() {
+        DnsSrvResolver resolver = DnsSrvResolvers.newBuilder()
+                .cachingLookups(true)
+                .retainingDataOnFailures(true)
+                .dnsLookupTimeoutMillis(1000)
+                .build();
+        //List<HostAndPort> nodes = resolver.resolve("xmpp-server._tcp.gmail.com");
+        List<HostAndPort> nodes = resolver.resolve(docker);
+
+        //TODO: Remove
+        for (HostAndPort node : nodes) {
+            System.out.println("Host: "+node.getHostText());
+            System.out.println("Port: "+node.getPort());
+        }
+
         return port;
     }
 
@@ -176,3 +213,4 @@ public abstract class AbstractServerConnection extends AbstractMojo implements C
         }
     }
 }
+
