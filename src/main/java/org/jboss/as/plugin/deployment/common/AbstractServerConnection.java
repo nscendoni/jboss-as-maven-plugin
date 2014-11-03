@@ -34,6 +34,7 @@ import org.jboss.as.plugin.deployment.ConnectionInfo;
 import org.jboss.as.plugin.deployment.domain.Domain;
 
 import com.google.common.net.HostAndPort;
+import com.spotify.dns.DnsException;
 import com.spotify.dns.DnsSrvResolver;
 import com.spotify.dns.DnsSrvResolvers;
 //import com.spotify.dns.LookupResult;
@@ -97,7 +98,7 @@ public abstract class AbstractServerConnection extends AbstractMojo implements C
     /**
      * @parameter expression="${docker}"
      */
-    private String docker;
+    private String docker = null;
 
 
 	/**
@@ -125,20 +126,26 @@ public abstract class AbstractServerConnection extends AbstractMojo implements C
      */
     @Override
     public final int getPort() {
-        DnsSrvResolver resolver = DnsSrvResolvers.newBuilder()
-                .cachingLookups(true)
-                .retainingDataOnFailures(true)
-                .dnsLookupTimeoutMillis(1000)
-                .build();
-        //List<HostAndPort> nodes = resolver.resolve("xmpp-server._tcp.gmail.com");
-        List<HostAndPort> nodes = resolver.resolve(docker);
-
-        //TODO: Remove
-        for (HostAndPort node : nodes) {
-            System.out.println("Host: "+node.getHostText());
-            System.out.println("Port: "+node.getPort());
-        }
-
+    	if (docker != null) {
+	        DnsSrvResolver resolver = DnsSrvResolvers.newBuilder()
+	                .cachingLookups(true)
+	                .retainingDataOnFailures(true)
+	                .dnsLookupTimeoutMillis(1000)
+	                .build();
+	
+	        try {
+		        List<HostAndPort> nodes = resolver.resolve(
+		        		String.format("_%s._tcp.%s.docker", port, docker));
+		
+		        for (HostAndPort node : nodes) {
+		        	port = node.getPort();
+		        	System.out.println("Docker resolved as"+
+		            		node.getHostText()+":"+port);
+		        }
+		    } catch (DnsException dnse) {
+		    	dnse.printStackTrace();
+		     }
+    	}
         return port;
     }
 
