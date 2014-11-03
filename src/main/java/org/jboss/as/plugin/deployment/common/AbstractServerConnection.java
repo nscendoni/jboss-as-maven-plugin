@@ -144,7 +144,7 @@ public abstract class AbstractServerConnection extends AbstractMojo implements C
 		        }
 		    } catch (DnsException dnse) {
 		    	dnse.printStackTrace();
-		     }
+		    }
     	}
         return port;
     }
